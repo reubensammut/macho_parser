@@ -41,15 +41,3 @@ def resolve_path(name):
         resolved_file = path
 
     return resolved_file
-
-def main():
-    if len(sys.argv) != 2:
-        sys.stderr.write(f"Usage: {sys.argv[0]} <filename>\n")
-        sys.exit(1)
-
-    exe_path = resolve_path(sys.argv[1])
-    print(exe_path)
-
-
-if __name__ == '__main__':
-    main()
