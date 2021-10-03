@@ -2,6 +2,7 @@
 import sys
 import plistlib
 from pathlib import Path
+from contextlib import contextmanager
 
 def resolve_path(name):
     path = Path(name)
@@ -41,3 +42,16 @@ def resolve_path(name):
         resolved_file = path
 
     return resolved_file
+class TabbedWriter(object):
+    def __init__(self):
+        self.tabs = 0
+        self.tab = '\t'
+
+    def tprint(self, text):
+        print(f"{self.tab * self.tabs}{text}")
+    
+    @contextmanager
+    def next_level(self):
+        self.tabs = self.tabs + 1
+        yield self
+        self.tabs = self.tabs - 1

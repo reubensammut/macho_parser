@@ -2,6 +2,7 @@
 import sys
 
 from macho_parser.util import resolve_path
+from macho_parser.parsers import Parser
 
 def main():
     if len(sys.argv) != 2:
@@ -9,7 +10,8 @@ def main():
         sys.exit(1)
 
     exe_path = resolve_path(sys.argv[1])
-    print(exe_path)
+    p = Parser(exe_path)
+    p.parse()
 
 if __name__ == '__main__':
     main()
