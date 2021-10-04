@@ -29,6 +29,8 @@ class Parser():
             0x19:       self.parse_lc_segment_64,
             0x1b:       self.parse_lc_uuid,
             0x22:       self.parse_lc_dyld_info,
+            0x24:       self.parse_lc_version_min_macosx,
+            0x25:       self.parse_lc_version_min_macosx,
             0x27:       self.parse_lc_load_dylinker,
             0x2a:       self.parse_lc_source_version,
             0x80000022: self.parse_lc_dyld_info
@@ -115,6 +117,22 @@ class Parser():
         u = UUID(bytes=uuid_str)
         with self.w.next_level() as w1:
             w1.tprint(f"UUID:       {{{u}}}")
+
+    def parse_lc_version_min_macosx(self, endian, fh, _maxsize):
+        version, sdk = unpack(f"{endian}II", fh.read(4*2))
+        vers = []
+        for i in range(3):
+            vt = version & 0xff
+            vers.insert(0, str(vt))
+            version = version >> 8
+        sdks = []
+        for i in range(3):
+            vt = sdk & 0xff
+            sdks.insert(0, str(vt))
+            sdk = sdk >> 8
+        with self.w.next_level() as w1:
+            w1.tprint(f"Version:    {'.'.join(vers)}")
+            w1.tprint(f"SDK:        {'.'.join(sdks)}")
 
     def parse_lc_source_version(self, endian, fh, _maxsize):
         version = unpack(f"{endian}Q", fh.read(8))[0]
