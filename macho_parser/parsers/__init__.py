@@ -23,12 +23,15 @@ class Parser():
         self.cmd_parsers = {
             0x2:        self.parse_lc_symtab,
             0xb:        self.parse_lc_dsymtab,
+            0xe:        self.parse_lc_load_dylinker,
+            0xf:        self.parse_lc_load_dylinker,
             0x19:       self.parse_lc_segment_64,
             0x22:       self.parse_lc_dyld_info,
+            0x27:       self.parse_lc_load_dylinker,
             0x80000022: self.parse_lc_dyld_info
         }
 
-    def parse_lc_symtab(self, endian, fh):
+    def parse_lc_symtab(self, endian, fh, _maxsize):
         symoff, nsyms, stroff, strsize = unpack(f"{endian}IIII", fh.read(4*4))
         
         with self.w.next_level() as w1:
@@ -37,7 +40,7 @@ class Parser():
             w1.tprint(f"String table offset:    {hex(stroff)}")
             w1.tprint(f"String table size:      {hex(strsize)}")
 
-    def parse_lc_dsymtab(self, endian, fh):
+    def parse_lc_dsymtab(self, endian, fh, _maxsize):
         ilocalsym, nlocalsym, iextdefsym, nextdefsym, iundefsym, nundefsym = unpack(f"{endian}IIIIII", fh.read(4*6))
         tocoff, ntoc, modtaboff, nmodtab, extrefsymoff, nextrefsyms = unpack(f"{endian}IIIIII", fh.read(4*6))
         indirectsymoff, nindirectsyms, extreloff, nextrel, locreloff, nlocrel = unpack(f"{endian}IIIIII", fh.read(4*6))
@@ -62,8 +65,17 @@ class Parser():
             w1.tprint(f"Local rel entries offset:   {hex(locreloff)}")
             w1.tprint(f"Local rel entries:          {nlocrel}")
 
+    def parse_lc_load_dylinker(self, endian, fh, maxsize):
+        offset, data = unpack(f"{endian}I{maxsize - 4}s", fh.read(4 + (maxsize - 4)))
+        with self.w.next_level() as w1:
+            w1.tprint(f"Name offset in LC:  {hex(offset)}")
+            offset = offset - 8 # ignore cmd and cmd size
+            offset = offset - 4 # length of offset 
+            str_data = data[offset:]
+            str_data = str_data[:str_data.find(b"\x00")]
+            w1.tprint(f"Name:               {str_data.decode()}")
 
-    def parse_lc_segment_64(self, endian, fh):
+    def parse_lc_segment_64(self, endian, fh, _maxsize):
         segname, vmaddr, vmsize, fileoff, filesize, maxprot, initprot, nsects, flags = unpack(f"{endian}16sQQQQIIII", fh.read(4*4 + 16 + 8*4))
         segname = segname.rstrip(b"\x00").decode()
         
@@ -95,7 +107,7 @@ class Parser():
                     w2.tprint(f"Reserved2:          {hex(sres2)}")
                     w2.tprint(f"Reserved3:          {hex(sres3)}")
 
-    def parse_lc_dyld_info(self, endian, fh):
+    def parse_lc_dyld_info(self, endian, fh, _maxsize):
         reboff, rebsize, bindoff, bindsize, wkbindoff, wkbindsize, lzbindoff, lzbindsize, expoff, expsize = unpack(f"{endian}IIIIIIIIII", fh.read(4*10))
         with self.w.next_level() as w1:
             w1.tprint(f"Rebase offset:      {hex(reboff)}")
@@ -109,7 +121,7 @@ class Parser():
             w1.tprint(f"Export offset:      {hex(expoff)}")
             w1.tprint(f"Export size:        {hex(expsize)}")
 
-    def parse_lc_generic(self, endian, fh):
+    def parse_lc_generic(self, endian, fh, _maxsize):
         pass 
 
     def parse_32bit(self, endian, fh):
@@ -143,7 +155,7 @@ class Parser():
                 cmdsize = cmdsize - 8
                 fh.seek(cmdsize, 1)
             else:
-                new_parser(endian, fh)
+                new_parser(endian, fh, cmdsize - 8)
             
 
 
