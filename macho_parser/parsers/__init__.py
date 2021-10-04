@@ -2,6 +2,7 @@
 from struct import unpack
 import struct
 import sys
+from uuid import UUID
 
 from macho_parser.util import TabbedWriter
 from macho_parser.parsers.constants import get_cpu_type, get_cpu_subtype, get_filetype, get_flags, get_command, get_sflags, get_prots
@@ -26,6 +27,7 @@ class Parser():
             0xe:        self.parse_lc_load_dylinker,
             0xf:        self.parse_lc_load_dylinker,
             0x19:       self.parse_lc_segment_64,
+            0x1b:       self.parse_lc_uuid,
             0x22:       self.parse_lc_dyld_info,
             0x27:       self.parse_lc_load_dylinker,
             0x80000022: self.parse_lc_dyld_info
@@ -106,6 +108,12 @@ class Parser():
                     w2.tprint(f"Reserved1:          {hex(sres1)}")
                     w2.tprint(f"Reserved2:          {hex(sres2)}")
                     w2.tprint(f"Reserved3:          {hex(sres3)}")
+
+    def parse_lc_uuid(self, endian, fh, _maxsize):
+        uuid_str = unpack(f"{endian}16s", fh.read(16))[0]
+        u = UUID(bytes=uuid_str)
+        with self.w.next_level() as w1:
+            w1.tprint(f"UUID:       {{{u}}}")
 
     def parse_lc_dyld_info(self, endian, fh, _maxsize):
         reboff, rebsize, bindoff, bindsize, wkbindoff, wkbindsize, lzbindoff, lzbindsize, expoff, expsize = unpack(f"{endian}IIIIIIIIII", fh.read(4*10))
