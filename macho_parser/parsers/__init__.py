@@ -31,11 +31,16 @@ class Parser():
             0xf:        self.parse_lc_load_dylinker,
             0x19:       self.parse_lc_segment_64,
             0x1b:       self.parse_lc_uuid,
+            0x1d:       self.parse_lc_code_signature,
+            0x1e:       self.parse_lc_code_signature,
             0x22:       self.parse_lc_dyld_info,
             0x24:       self.parse_lc_version_min_macosx,
             0x25:       self.parse_lc_version_min_macosx,
+            0x26:       self.parse_lc_code_signature,
             0x27:       self.parse_lc_load_dylinker,
+            0x29:       self.parse_lc_code_signature,
             0x2a:       self.parse_lc_source_version,
+            0x2b:       self.parse_lc_code_signature,
             0x80000018: self.parse_lc_load_dylib,
             0x8000001C: self.parse_lc_rpath,
             0x8000001F: self.parse_lc_load_dylib,
@@ -137,6 +142,12 @@ class Parser():
         u = UUID(bytes=uuid_str)
         with self.w.next_level() as w1:
             w1.tprint(f"UUID:       {{{u}}}")
+
+    def parse_lc_code_signature(self, endian, fh, _maxsize):
+        dataoff, datasize = unpack(f"{endian}II", fh.read(4*2))
+        with self.w.next_level() as w1:
+            w1.tprint(f"Offset of data in __LINKEDIT:   {hex(dataoff)}")
+            w1.tprint(f"Size of data in __LINKEDIT:     {hex(datasize)}")
 
     def parse_lc_version_min_macosx(self, endian, fh, _maxsize):
         version, sdk = unpack(f"{endian}II", fh.read(4*2))
