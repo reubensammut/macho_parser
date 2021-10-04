@@ -298,4 +298,6 @@ def get_prots(prot):
             if res != "":
                 res = res + " | "
             res = res + v
+    if res == "":
+        res = "VM_PROT_NONE"
     return res
