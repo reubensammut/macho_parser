@@ -42,6 +42,23 @@ def resolve_path(name):
         resolved_file = path
 
     return resolved_file
+
+def parse_32bit_version(version):
+    vers = []
+    for i in range(3):
+        vt = version & 0xff
+        vers.insert(0, str(vt))
+        version = version >> 8
+    return '.'.join(vers)
+
+def parse_64bit_version(version):
+    vers = []
+    for i in range(5):
+        vt = version & 0x3ff
+        vers.insert(0, str(vt))
+        version = version >> 10
+    return '.'.join(vers)
+    
 class TabbedWriter(object):
     def __init__(self):
         self.tabs = 0

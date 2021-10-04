@@ -2,9 +2,10 @@
 from struct import unpack
 import struct
 import sys
+from time import ctime
 from uuid import UUID
 
-from macho_parser.util import TabbedWriter
+from macho_parser.util import TabbedWriter, parse_32bit_version, parse_64bit_version
 from macho_parser.parsers.constants import get_cpu_type, get_cpu_subtype, get_filetype, get_flags, get_command, get_sflags, get_prots
 
 class Parser():
@@ -24,6 +25,8 @@ class Parser():
         self.cmd_parsers = {
             0x2:        self.parse_lc_symtab,
             0xb:        self.parse_lc_dsymtab,
+            0xc:        self.parse_lc_load_dylib,
+            0xd:        self.parse_lc_load_dylib,
             0xe:        self.parse_lc_load_dylinker,
             0xf:        self.parse_lc_load_dylinker,
             0x19:       self.parse_lc_segment_64,
@@ -33,6 +36,8 @@ class Parser():
             0x25:       self.parse_lc_version_min_macosx,
             0x27:       self.parse_lc_load_dylinker,
             0x2a:       self.parse_lc_source_version,
+            0x80000018: self.parse_lc_load_dylib,
+            0x8000001F: self.parse_lc_load_dylib,
             0x80000022: self.parse_lc_dyld_info,
             0x80000028: self.parse_lc_main
         }
@@ -70,9 +75,22 @@ class Parser():
             w1.tprint(f"Ext rel entries:            {nextrel}")
             w1.tprint(f"Local rel entries offset:   {hex(locreloff)}")
             w1.tprint(f"Local rel entries:          {nlocrel}")
+    
+    def parse_lc_load_dylib(self, endian, fh, maxsize):
+        offset, timestamp, curver, compatver,data = unpack(f"{endian}IIII{maxsize - (4*4)}s", fh.read(maxsize))
+        with self.w.next_level() as w1:
+            w1.tprint(f"Name offset in LC:  {hex(offset)}")
+            w1.tprint(f"Timestamp:          {ctime(timestamp)}")
+            w1.tprint(f"Current version:    {parse_32bit_version(curver)}")
+            w1.tprint(f"Compat version:     {parse_32bit_version(compatver)}")
+            offset = offset - 8  # ignore cmd and cmd size 
+            offset = offset - 16 # offset from start of data
+            str_data = data[offset:]
+            str_data = str_data[:str_data.find(b"\x00")]
+            w1.tprint(f"Name:               {str_data.decode()}") 
 
     def parse_lc_load_dylinker(self, endian, fh, maxsize):
-        offset, data = unpack(f"{endian}I{maxsize - 4}s", fh.read(4 + (maxsize - 4)))
+        offset, data = unpack(f"{endian}I{maxsize - 4}s", fh.read(maxsize))
         with self.w.next_level() as w1:
             w1.tprint(f"Name offset in LC:  {hex(offset)}")
             offset = offset - 8 # ignore cmd and cmd size
@@ -121,30 +139,14 @@ class Parser():
 
     def parse_lc_version_min_macosx(self, endian, fh, _maxsize):
         version, sdk = unpack(f"{endian}II", fh.read(4*2))
-        vers = []
-        for i in range(3):
-            vt = version & 0xff
-            vers.insert(0, str(vt))
-            version = version >> 8
-        sdks = []
-        for i in range(3):
-            vt = sdk & 0xff
-            sdks.insert(0, str(vt))
-            sdk = sdk >> 8
         with self.w.next_level() as w1:
-            w1.tprint(f"Version:    {'.'.join(vers)}")
-            w1.tprint(f"SDK:        {'.'.join(sdks)}")
+            w1.tprint(f"Version:    {parse_32bit_version(version)}")
+            w1.tprint(f"SDK:        {parse_32bit_version(sdk)}")
 
     def parse_lc_source_version(self, endian, fh, _maxsize):
         version = unpack(f"{endian}Q", fh.read(8))[0]
-        vers = []
-        for i in range(5):
-            vt = version & 0x3ff
-            vers.insert(0, str(vt))
-            version = version >> 10
-
         with self.w.next_level() as w1:
-            w1.tprint(f"Version:    {'.'.join(vers)}")
+            w1.tprint(f"Version:    {parse_64bit_version(version)}")
 
     def parse_lc_dyld_info(self, endian, fh, _maxsize):
         reboff, rebsize, bindoff, bindsize, wkbindoff, wkbindsize, lzbindoff, lzbindsize, expoff, expsize = unpack(f"{endian}IIIIIIIIII", fh.read(4*10))
