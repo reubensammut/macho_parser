@@ -37,6 +37,7 @@ class Parser():
             0x27:       self.parse_lc_load_dylinker,
             0x2a:       self.parse_lc_source_version,
             0x80000018: self.parse_lc_load_dylib,
+            0x8000001C: self.parse_lc_rpath,
             0x8000001F: self.parse_lc_load_dylib,
             0x80000022: self.parse_lc_dyld_info,
             0x80000028: self.parse_lc_main
@@ -161,6 +162,16 @@ class Parser():
             w1.tprint(f"Lazy bind size:     {hex(lzbindsize)}")
             w1.tprint(f"Export offset:      {hex(expoff)}")
             w1.tprint(f"Export size:        {hex(expsize)}")
+
+    def parse_lc_rpath(self, endian, fh, maxsize):
+        offset, data = unpack(f"{endian}I{maxsize - 4}s", fh.read(maxsize))
+        with self.w.next_level() as w1:
+            w1.tprint(f"Path offset in LC:  {hex(offset)}")
+            offset = offset - 8 # ignore cmd and cmd size
+            offset = offset - 4 # length of offset 
+            str_data = data[offset:]
+            str_data = str_data[:str_data.find(b"\x00")]
+            w1.tprint(f"Path:               {str_data.decode()}")
 
     def parse_lc_main(self, endian, fh, _maxsize):
         entryoff, stacksize = unpack(f"{endian}QQ", fh.read(8*2))
