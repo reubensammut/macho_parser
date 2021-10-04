@@ -21,10 +21,20 @@ class Parser():
         }
 
         self.cmd_parsers = {
+            0x2:        self.parse_lc_symtab,
             0x19:       self.parse_lc_segment_64,
             0x22:       self.parse_lc_dyld_info,
             0x80000022: self.parse_lc_dyld_info
         }
+
+    def parse_lc_symtab(self, endian, fh):
+        symoff, nsyms, stroff, strsize = unpack(f"{endian}IIII", fh.read(4*4))
+        
+        with self.w.next_level() as w1:
+            w1.tprint(f"Symbol table offset:    {hex(symoff)}")
+            w1.tprint(f"Number of symbols:      {nsyms}")
+            w1.tprint(f"String table offset:    {hex(stroff)}")
+            w1.tprint(f"String table size:      {hex(strsize)}")
 
     def parse_lc_segment_64(self, endian, fh):
         segname, vmaddr, vmsize, fileoff, filesize, maxprot, initprot, nsects, flags = unpack(f"{endian}16sQQQQIIII", fh.read(4*4 + 16 + 8*4))
