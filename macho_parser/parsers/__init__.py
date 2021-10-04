@@ -22,6 +22,7 @@ class Parser():
 
         self.cmd_parsers = {
             0x2:        self.parse_lc_symtab,
+            0xb:        self.parse_lc_dsymtab,
             0x19:       self.parse_lc_segment_64,
             0x22:       self.parse_lc_dyld_info,
             0x80000022: self.parse_lc_dyld_info
@@ -35,6 +36,32 @@ class Parser():
             w1.tprint(f"Number of symbols:      {nsyms}")
             w1.tprint(f"String table offset:    {hex(stroff)}")
             w1.tprint(f"String table size:      {hex(strsize)}")
+
+    def parse_lc_dsymtab(self, endian, fh):
+        ilocalsym, nlocalsym, iextdefsym, nextdefsym, iundefsym, nundefsym = unpack(f"{endian}IIIIII", fh.read(4*6))
+        tocoff, ntoc, modtaboff, nmodtab, extrefsymoff, nextrefsyms = unpack(f"{endian}IIIIII", fh.read(4*6))
+        indirectsymoff, nindirectsyms, extreloff, nextrel, locreloff, nlocrel = unpack(f"{endian}IIIIII", fh.read(4*6))
+
+        with self.w.next_level() as w1:
+            w1.tprint(f"Index local symbols:        {hex(ilocalsym)}")
+            w1.tprint(f"Number local symbols:       {nlocalsym}")
+            w1.tprint(f"Index extern symbols:       {hex(iextdefsym)}")
+            w1.tprint(f"Number extern symbols:      {nextdefsym}")
+            w1.tprint(f"Index undef symbols:        {hex(iundefsym)}")
+            w1.tprint(f"Number undef symbols:       {nundefsym}")
+            w1.tprint(f"TOC offset:                 {hex(tocoff)}")
+            w1.tprint(f"TOC entries:                {ntoc}")
+            w1.tprint(f"Module table offset:        {hex(modtaboff)}")
+            w1.tprint(f"Module table entries:       {nmodtab}")
+            w1.tprint(f"Ref sym table offset:       {hex(extrefsymoff)}")
+            w1.tprint(f"Ref sym table entries:      {nextrefsyms}")
+            w1.tprint(f"Indirect sym table offset:  {hex(indirectsymoff)}")
+            w1.tprint(f"Indirect sym table entries: {nindirectsyms}")
+            w1.tprint(f"Ext rel entries offset:     {hex(extreloff)}")
+            w1.tprint(f"Ext rel entries:            {nextrel}")
+            w1.tprint(f"Local rel entries offset:   {hex(locreloff)}")
+            w1.tprint(f"Local rel entries:          {nlocrel}")
+
 
     def parse_lc_segment_64(self, endian, fh):
         segname, vmaddr, vmsize, fileoff, filesize, maxprot, initprot, nsects, flags = unpack(f"{endian}16sQQQQIIII", fh.read(4*4 + 16 + 8*4))
