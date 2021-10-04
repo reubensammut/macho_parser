@@ -30,6 +30,7 @@ class Parser():
             0x1b:       self.parse_lc_uuid,
             0x22:       self.parse_lc_dyld_info,
             0x27:       self.parse_lc_load_dylinker,
+            0x2a:       self.parse_lc_source_version,
             0x80000022: self.parse_lc_dyld_info
         }
 
@@ -114,6 +115,17 @@ class Parser():
         u = UUID(bytes=uuid_str)
         with self.w.next_level() as w1:
             w1.tprint(f"UUID:       {{{u}}}")
+
+    def parse_lc_source_version(self, endian, fh, _maxsize):
+        version = unpack(f"{endian}Q", fh.read(8))[0]
+        vers = []
+        for i in range(5):
+            vt = version & 0x3ff
+            vers.insert(0, str(vt))
+            version = version >> 10
+
+        with self.w.next_level() as w1:
+            w1.tprint(f"Version:    {'.'.join(vers)}")
 
     def parse_lc_dyld_info(self, endian, fh, _maxsize):
         reboff, rebsize, bindoff, bindsize, wkbindoff, wkbindsize, lzbindoff, lzbindsize, expoff, expsize = unpack(f"{endian}IIIIIIIIII", fh.read(4*10))
