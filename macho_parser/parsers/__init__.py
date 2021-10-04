@@ -21,7 +21,9 @@ class Parser():
         }
 
         self.cmd_parsers = {
-            0x19: self.parse_lc_segment_64
+            0x19:       self.parse_lc_segment_64,
+            0x22:       self.parse_lc_dyld_info,
+            0x80000022: self.parse_lc_dyld_info
         }
 
     def parse_lc_segment_64(self, endian, fh):
@@ -55,6 +57,20 @@ class Parser():
                     w2.tprint(f"Reserved1:          {hex(sres1)}")
                     w2.tprint(f"Reserved2:          {hex(sres2)}")
                     w2.tprint(f"Reserved3:          {hex(sres3)}")
+
+    def parse_lc_dyld_info(self, endian, fh):
+        reboff, rebsize, bindoff, bindsize, wkbindoff, wkbindsize, lzbindoff, lzbindsize, expoff, expsize = unpack(f"{endian}IIIIIIIIII", fh.read(4*10))
+        with self.w.next_level() as w1:
+            w1.tprint(f"Rebase offset:      {hex(reboff)}")
+            w1.tprint(f"Rebase size:        {hex(rebsize)}")
+            w1.tprint(f"Bind offset:        {hex(bindoff)}")
+            w1.tprint(f"Bind size:          {hex(bindsize)}")
+            w1.tprint(f"Weak bind offset:   {hex(wkbindoff)}")
+            w1.tprint(f"Weak bind size:     {hex(wkbindsize)}")
+            w1.tprint(f"Lazy bind offset:   {hex(lzbindoff)}")
+            w1.tprint(f"Lazy bind size:     {hex(lzbindsize)}")
+            w1.tprint(f"Export offset:      {hex(expoff)}")
+            w1.tprint(f"Export size:        {hex(expsize)}")
 
     def parse_lc_generic(self, endian, fh):
         pass 
