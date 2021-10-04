@@ -33,7 +33,8 @@ class Parser():
             0x25:       self.parse_lc_version_min_macosx,
             0x27:       self.parse_lc_load_dylinker,
             0x2a:       self.parse_lc_source_version,
-            0x80000022: self.parse_lc_dyld_info
+            0x80000022: self.parse_lc_dyld_info,
+            0x80000028: self.parse_lc_main
         }
 
     def parse_lc_symtab(self, endian, fh, _maxsize):
@@ -158,6 +159,12 @@ class Parser():
             w1.tprint(f"Lazy bind size:     {hex(lzbindsize)}")
             w1.tprint(f"Export offset:      {hex(expoff)}")
             w1.tprint(f"Export size:        {hex(expsize)}")
+
+    def parse_lc_main(self, endian, fh, _maxsize):
+        entryoff, stacksize = unpack(f"{endian}QQ", fh.read(8*2))
+        with self.w.next_level() as w1:
+            w1.tprint(f"Offset of main:     {hex(entryoff)}")
+            w1.tprint(f"Init stack size:    {hex(stacksize)}")
 
     def parse_lc_generic(self, endian, fh, _maxsize):
         pass 
