@@ -41,6 +41,7 @@ class Parser():
             0x29:       self.parse_lc_code_signature,
             0x2a:       self.parse_lc_source_version,
             0x2b:       self.parse_lc_code_signature,
+            0x32:       self.parse_lc_build_version,
             0x80000018: self.parse_lc_load_dylib,
             0x8000001C: self.parse_lc_rpath,
             0x8000001F: self.parse_lc_load_dylib,
@@ -148,6 +149,20 @@ class Parser():
         with self.w.next_level() as w1:
             w1.tprint(f"Offset of data in __LINKEDIT:   {hex(dataoff)}")
             w1.tprint(f"Size of data in __LINKEDIT:     {hex(datasize)}")
+            
+    def parse_lc_build_version(self, endian, fh, _maxsize):
+        platform, minos, sdk, ntools = unpack(f"{endian}IIII", fh.read(16))
+        with self.w.next_level() as w1:
+            w1.tprint(f"Platform:       {platform}")
+            w1.tprint(f"Min OS:         {parse_32bit_version(minos)}")
+            w1.tprint(f"SDK:            {parse_32bit_version(sdk)}")
+            w1.tprint(f"Tool Entries:   {ntools}")
+
+            for i in range(ntools):
+                tool, version = unpack(f"{endian}II", fh.read(8))
+                with self.w.next_level() as w2:
+                    w2.tprint(f"Tool #:       {tool}")
+                    w2.tprint(f"Version:      {parse_32bit_version(version)}")
 
     def parse_lc_version_min_macosx(self, endian, fh, _maxsize):
         version, sdk = unpack(f"{endian}II", fh.read(4*2))
